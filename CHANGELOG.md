@@ -38,6 +38,14 @@
 
 ## 2.1.33
 
+- **Kero's server build runs on illumos** (SunOS), with libghostty-vt
+  built for it, so a Helios or other illumos machine can join Settings ›
+  Hosts beside Linux and macOS.
+- **Updating Kero keeps your programs running.** On Linux, macOS and
+  illumos, kerod hands its terminals to the update in place: the shells,
+  agents and editors in them stay, and the screen comes back. The first
+  update to this version still starts the shells again, as the kerod
+  before it has no handoff.
 - **Keep computer awake** stops the computer from sleeping: **Always**,
   or **While agents work** in this computer's panes. Pick it in
   Settings › General, in the tray menu or from the command palette.
