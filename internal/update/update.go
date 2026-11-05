@@ -51,7 +51,7 @@ func Asset(version, goos, goarch string) string {
 }
 
 // Platforms are those the server build is made for.
-var Platforms = []string{"linux/amd64", "linux/arm64", "darwin/amd64", "darwin/arm64", "windows/amd64", "windows/arm64"}
+var Platforms = []string{"linux/amd64", "linux/arm64", "darwin/amd64", "darwin/arm64", "windows/amd64", "windows/arm64", "illumos/amd64"}
 
 // exe is the name of kero in an archive for goos.
 func exe(goos string) string {
@@ -230,6 +230,8 @@ func Sign(archive []byte, version, goos, goarch, privateKey string) (string, err
 	return base64.StdEncoding.EncodeToString(ed25519.Sign(ed25519.PrivateKey(k), message(archive, version, goos, goarch))), nil
 }
 
+var installPlatform func(ctx context.Context, version, dir string) error
+
 // Install puts the server build of version ("" the latest), for this
 // platform, in dir, in place of what it holds: the install of the running
 // kero (InstallDir), which keeps running the old one until it restarts.
@@ -260,6 +262,9 @@ func Install(ctx context.Context, version, dir, current string, downgrade bool) 
 		case c < 0 && !downgrade:
 			return fmt.Errorf("Kero %s is installed, newer than %s: update the app instead", current, version)
 		}
+	}
+	if installPlatform != nil && os.Getenv("KERO_RELEASES") == "" {
+		return installPlatform(ctx, version, dir)
 	}
 	name := Asset(version, runtime.GOOS, runtime.GOARCH)
 	archive, err := get(ctx, URL(version, name), maxArchive)
