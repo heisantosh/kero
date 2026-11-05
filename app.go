@@ -100,6 +100,9 @@ type App struct {
 	owner  map[string]*host
 	st     proto.State
 	loaded bool // a state came
+	// handoffTried tells that the app asked its kerod to hand its
+	// sessions over, and it did not: a kerod of before the handoff.
+	handoffTried bool
 
 	prefs      prefs
 	set        settings.Settings // the user's settings: Settings' controls edit it
@@ -1594,13 +1597,17 @@ func (a *App) busyCount(h *host) int {
 }
 
 // restartDaemon restarts this machine's kerod, as when it is of another
-// version: its sessions start again where they were, with their
-// scrollback.
+// version. A kerod with session handoff hands its panes to this app's
+// binary, and their programs keep running; one of before ends, and the
+// sessions start again where they were, with their scrollback.
 func (a *App) restartDaemon() {
 	h := a.local()
 	h.conn = connConnecting
 	go func() {
-		err := stopDaemon()
+		err := handoffLocal()
+		if err != nil && isUnknownMethod(err) {
+			err = stopDaemon()
+		}
 		a.update(func() {
 			if err != nil {
 				h.conn, h.err = connFailed, err.Error()
@@ -1609,6 +1616,51 @@ func (a *App) restartDaemon() {
 			a.connect()
 		})
 	}()
+}
+
+// handoffDaemon asks this machine's kerod to hand its sessions to this
+// app's binary, as after the app updated: no prompt, as no program ends.
+// A kerod of before the handoff is left running, and the stale chip
+// offers the older kind of restart.
+func (a *App) handoffDaemon() {
+	if a.handoffTried {
+		return
+	}
+	a.handoffTried = true
+	h := a.local()
+	h.conn = connConnecting
+	go func() {
+		err := handoffLocal()
+		a.update(func() {
+			if err != nil {
+				if isUnknownMethod(err) {
+					// The kerod of before keeps its sessions; reconnecting
+					// to it leaves the restart to the user.
+					a.connect()
+					return
+				}
+				h.conn, h.err = connFailed, err.Error()
+				a.connect()
+				return
+			}
+			a.connect()
+		})
+	}()
+}
+
+// handoffLocal asks this machine's kerod to exec this binary, which
+// adopts its panes.
+func handoffLocal() error {
+	c, err := client.Connect(false)
+	if err != nil {
+		return err
+	}
+	defer c.Close()
+	return c.Call("daemon.restart", nil, nil)
+}
+
+func isUnknownMethod(err error) bool {
+	return err != nil && strings.Contains(err.Error(), "unknown method")
 }
 
 // quitAllDetail says what Quit and End All ends: this machine's sessions,

@@ -9,10 +9,20 @@
 #   sh scripts/build-server.sh [os/arch ...]
 set -eu
 
-version="$(jq -r .version mygo.json)"
+version="${KERO_VERSION:-$(jq -r .version mygo.json)}"
 platforms="${*:-linux/amd64 linux/arm64 darwin/amd64 darwin/arm64 windows/amd64 windows/arm64}"
 out=build/server
 mkdir -p "$out"
+
+# A ustar archive, so that illumos's own tar reads it: macOS's bsdtar
+# otherwise writes PAX extended headers, which Solaris tar rejects.
+tar_create() {
+	if tar --version 2>/dev/null | grep -q bsdtar; then
+		tar --format ustar --no-xattrs "$@"
+	else
+		tar "$@"
+	fi
+}
 
 go mod download github.com/egoist/mygo
 manifest="$(go list -m -f '{{.Dir}}' github.com/egoist/mygo)/plugins/terminal/mygo-plugin.json"
@@ -40,11 +50,22 @@ for p in $platforms; do
 		-ldflags "-s -w -X main.version=$version -X github.com/egoist/mygo.production=1" \
 		-o "$stage/$exe" ./cmd/kero-server
 	# libghostty-vt, which the archive carries, as the app does: kero finds
-	# it beside itself, and downloads none.
-	file="$(jq -c ".libraries[] | select(.name == \"libghostty-vt\") | .files[\"$os-$arch\"]" "$manifest")"
-	lib="$(echo "$file" | jq -r .name)"
-	curl -fsSL "$(echo "$file" | jq -r .url)" -o "$stage/$lib"
-	echo "$(echo "$file" | jq -r .sha256)  $stage/$lib" | check
+	# it beside itself, and downloads none. illumos has no build among
+	# MyGo's natives: scripts/build-libghostty-vt-illumos.sh builds one.
+	lib=libghostty-vt.so
+	if [ "$os" = illumos ]; then
+		src="${KERO_ILLUMOS_VT:-build/illumos/$lib}"
+		[ -f "$src" ] || {
+			echo "build-server: no $src; run scripts/build-libghostty-vt-illumos.sh" >&2
+			exit 1
+		}
+		cp "$src" "$stage/$lib"
+	else
+		file="$(jq -c ".libraries[] | select(.name == \"libghostty-vt\") | .files[\"$os-$arch\"]" "$manifest")"
+		lib="$(echo "$file" | jq -r .name)"
+		curl -fsSL "$(echo "$file" | jq -r .url)" -o "$stage/$lib"
+		echo "$(echo "$file" | jq -r .sha256)  $stage/$lib" | check
+	fi
 	# On Windows, the ConPTY the app ships too, which kerod finds beside
 	# itself (resources/windows-*).
 	extra=
@@ -57,7 +78,7 @@ for p in $platforms; do
 		rm -f "$out/kero-server-$version-$os-$arch.zip"
 		(cd "$stage" && zip -q -X "../kero-server-$version-$os-$arch.zip" "$exe" "$lib" $extra .kero-server)
 	else
-		tar -C "$stage" -czf "$out/kero-server-$version-$os-$arch.tar.gz" "$exe" "$lib" .kero-server
+		tar_create -C "$stage" -czf "$out/kero-server-$version-$os-$arch.tar.gz" "$exe" "$lib" .kero-server
 	fi
 done
 

@@ -68,5 +68,5 @@ func (p *ptyProc) hangup() {
 	if pg := p.Foreground(); pg > 0 {
 		syscall.Kill(-pg, syscall.SIGHUP)
 	}
-	syscall.Kill(-p.cmd.Process.Pid, syscall.SIGHUP)
+	syscall.Kill(-p.pid, syscall.SIGHUP)
 }

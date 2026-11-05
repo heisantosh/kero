@@ -1054,23 +1054,23 @@ func (msgs Messages) RestartRunning(count int) string {
 	return Catalog.Format(msgs.locale, "restartRunning", map[string]any{"count": count})
 }
 
-// RestartStaleDetail says "The service that runs your sessions is still Kero {was}, and this is Kero {version}. {running}: restarting ends them,…"
+// RestartStaleDetail says "The service that runs your sessions is still Kero {was}, and this is Kero {version}. {running}: a service with sessio…"
 // in the language the app shows.
 func RestartStaleDetail(was string, version string, running string) string {
 	return In(i18n.Locale()).RestartStaleDetail(was, version, running)
 }
 
-// RestartStaleDetail says "The service that runs your sessions is still Kero {was}, and this is Kero {version}. {running}: restarting ends them,…"
+// RestartStaleDetail says "The service that runs your sessions is still Kero {was}, and this is Kero {version}. {running}: a service with sessio…"
 // in the language of msgs.
 func (msgs Messages) RestartStaleDetail(was string, version string, running string) string {
 	return Catalog.Format(msgs.locale, "restartStaleDetail", map[string]any{"was": was, "version": version, "running": running})
 }
 
-// RestartServiceDetail says "Every pane’s program ends; the shells start again in their folders, under their history."
+// RestartServiceDetail says "A service with session handoff keeps every pane’s program running; an older one starts the shells again in their fo…"
 // in the language the app shows.
 func RestartServiceDetail() string { return In(i18n.Locale()).RestartServiceDetail() }
 
-// RestartServiceDetail says "Every pane’s program ends; the shells start again in their folders, under their history."
+// RestartServiceDetail says "A service with session handoff keeps every pane’s program running; an older one starts the shells again in their fo…"
 // in the language of msgs.
 func (msgs Messages) RestartServiceDetail() string {
 	return Catalog.Format(msgs.locale, "restartServiceDetail", nil)
@@ -1406,11 +1406,11 @@ func (msgs Messages) UpdatedTitle() string {
 	return Catalog.Format(msgs.locale, "updatedTitle", nil)
 }
 
-// UpdatedDetail says "The background service that runs your sessions is from another version. Restart it: your sessions start again where t…"
+// UpdatedDetail says "The background service that runs your sessions is from another version. Restart it: a service with session handoff ke…"
 // in the language the app shows.
 func UpdatedDetail() string { return In(i18n.Locale()).UpdatedDetail() }
 
-// UpdatedDetail says "The background service that runs your sessions is from another version. Restart it: your sessions start again where t…"
+// UpdatedDetail says "The background service that runs your sessions is from another version. Restart it: a service with session handoff ke…"
 // in the language of msgs.
 func (msgs Messages) UpdatedDetail() string {
 	return Catalog.Format(msgs.locale, "updatedDetail", nil)
@@ -5276,21 +5276,21 @@ func (msgs Messages) HostUpdateTitle(host string, version string) string {
 	return Catalog.Format(msgs.locale, "hostUpdateTitle", map[string]any{"host": host, "version": version})
 }
 
-// HostUpdateDetail says "Kero then restarts its service on {host}. Sessions there start again where they were, with their history, and the pro…"
+// HostUpdateDetail says "Kero then restarts its service on {host}. With session handoff its programs keep running; an older service starts the…"
 // in the language the app shows.
 func HostUpdateDetail(host string) string { return In(i18n.Locale()).HostUpdateDetail(host) }
 
-// HostUpdateDetail says "Kero then restarts its service on {host}. Sessions there start again where they were, with their history, and the pro…"
+// HostUpdateDetail says "Kero then restarts its service on {host}. With session handoff its programs keep running; an older service starts the…"
 // in the language of msgs.
 func (msgs Messages) HostUpdateDetail(host string) string {
 	return Catalog.Format(msgs.locale, "hostUpdateDetail", map[string]any{"host": host})
 }
 
-// HostUpdateAppDetail says "The Kero app on {host} updates and relaunches, then restarts its service. Sessions there start again where they were,…"
+// HostUpdateAppDetail says "The Kero app on {host} updates and relaunches, then restarts its service. With session handoff its programs keep runn…"
 // in the language the app shows.
 func HostUpdateAppDetail(host string) string { return In(i18n.Locale()).HostUpdateAppDetail(host) }
 
-// HostUpdateAppDetail says "The Kero app on {host} updates and relaunches, then restarts its service. Sessions there start again where they were,…"
+// HostUpdateAppDetail says "The Kero app on {host} updates and relaunches, then restarts its service. With session handoff its programs keep runn…"
 // in the language of msgs.
 func (msgs Messages) HostUpdateAppDetail(host string) string {
 	return Catalog.Format(msgs.locale, "hostUpdateAppDetail", map[string]any{"host": host})
@@ -5382,11 +5382,11 @@ func (msgs Messages) HostRestartTitle(host string) string {
 	return Catalog.Format(msgs.locale, "hostRestartTitle", map[string]any{"host": host})
 }
 
-// HostRestartDetail says "Sessions on {host} start again where they were, with their history, and the programs running in them end."
+// HostRestartDetail says "Sessions on {host} keep their programs running when its service has session handoff; an older service starts them aga…"
 // in the language the app shows.
 func HostRestartDetail(host string) string { return In(i18n.Locale()).HostRestartDetail(host) }
 
-// HostRestartDetail says "Sessions on {host} start again where they were, with their history, and the programs running in them end."
+// HostRestartDetail says "Sessions on {host} keep their programs running when its service has session handoff; an older service starts them aga…"
 // in the language of msgs.
 func (msgs Messages) HostRestartDetail(host string) string {
 	return Catalog.Format(msgs.locale, "hostRestartDetail", map[string]any{"host": host})
@@ -5710,11 +5710,11 @@ func (msgs Messages) SetRemoteUpdates() string {
 	return Catalog.Format(msgs.locale, "setRemoteUpdates", nil)
 }
 
-// SetRemoteUpdatesDetail says "Kero on your other machines can update this app to its version. The app relaunches, and the programs running in its s…"
+// SetRemoteUpdatesDetail says "Kero on your other machines can update this app to its version. The app relaunches; a current service keeps its sessi…"
 // in the language the app shows.
 func SetRemoteUpdatesDetail() string { return In(i18n.Locale()).SetRemoteUpdatesDetail() }
 
-// SetRemoteUpdatesDetail says "Kero on your other machines can update this app to its version. The app relaunches, and the programs running in its s…"
+// SetRemoteUpdatesDetail says "Kero on your other machines can update this app to its version. The app relaunches; a current service keeps its sessi…"
 // in the language of msgs.
 func (msgs Messages) SetRemoteUpdatesDetail() string {
 	return Catalog.Format(msgs.locale, "setRemoteUpdatesDetail", nil)
