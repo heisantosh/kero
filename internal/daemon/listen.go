@@ -460,13 +460,22 @@ func UpdateApp(ctx context.Context, app string) error {
 	return up.Install(ctx, nil)
 }
 
-// restart restarts kerod, as a remote client asks after an update: it
-// saves the sessions, which the next kerod starts again, as after a
-// reboot, then ends; its service's manager, or its successor, starts the
-// next.
+// restart restarts kerod, as a remote client asks after an update. On
+// Unix the same process becomes the next binary, which inherits the PTY
+// masters and adopts the sessions, so their programs keep running. On
+// Windows it saves the sessions, which the next kerod starts again, as
+// after a reboot, and ends; its service's manager, or its successor,
+// starts the next.
 func (d *Daemon) restart() (then func(), err error) {
 	d.log.Printf("restarting, as a client asked")
-	// Once the answer is written.
+	if handoffSupported {
+		path, err := d.prepareHandoff()
+		if err != nil {
+			return nil, err
+		}
+		// Once the answer is written.
+		return func() { d.execHandoff(path) }, nil
+	}
 	return func() {
 		d.saveHistories(true)
 		d.saveState()
