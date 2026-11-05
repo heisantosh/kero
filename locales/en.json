@@ -135,7 +135,7 @@
       }
     }
   },
-  "restartStaleDetail": "The service that runs your sessions is still Kero {was}, and this is Kero {version}. {running}: restarting ends them, and sessions start again where they were, with their history.",
+  "restartStaleDetail": "The service that runs your sessions is still Kero {was}, and this is Kero {version}. {running}: a service with session handoff keeps their programs running, and an older one starts the sessions again where they were.",
   "@restartStaleDetail": {
     "placeholders": {
       "was": {
@@ -149,7 +149,7 @@
       }
     }
   },
-  "restartServiceDetail": "Every pane’s program ends; the shells start again in their folders, under their history.",
+  "restartServiceDetail": "A service with session handoff keeps every pane’s program running; an older one starts the shells again in their folders, under their history.",
   "sidebarOtherProject": "Other",
   "sidebarHide": "Hide Sidebar",
   "sidebarShow": "Show Sidebar",
@@ -216,7 +216,7 @@
   "statusDone": "Done",
   "updateRestartTip": "Kero was updated: restart the background service to run the new version",
   "updatedTitle": "Kero was updated",
-  "updatedDetail": "The background service that runs your sessions is from another version. Restart it: your sessions start again where they were, with their history.",
+  "updatedDetail": "The background service that runs your sessions is from another version. Restart it: a service with session handoff keeps your programs running, and an older one starts the sessions again where they were.",
   "connCantReach": "Can’t reach kerod",
   "emptyTitle": "Start a session",
   "emptyDetail": "Sessions keep running in the background — quit Kero and come back to everything just as you left it.",
@@ -849,7 +849,7 @@
       }
     }
   },
-  "hostUpdateDetail": "Kero then restarts its service on {host}. Sessions there start again where they were, with their history, and the programs running in them end.",
+  "hostUpdateDetail": "Kero then restarts its service on {host}. With session handoff its programs keep running; an older service starts the sessions again where they were, with their history.",
   "@hostUpdateDetail": {
     "placeholders": {
       "host": {
@@ -857,7 +857,7 @@
       }
     }
   },
-  "hostUpdateAppDetail": "The Kero app on {host} updates and relaunches, then restarts its service. Sessions there start again where they were, with their history, and the programs running in them end.",
+  "hostUpdateAppDetail": "The Kero app on {host} updates and relaunches, then restarts its service. With session handoff its programs keep running; an older service starts the sessions again where they were, with their history.",
   "@hostUpdateAppDetail": {
     "placeholders": {
       "host": {
@@ -937,7 +937,7 @@
       }
     }
   },
-  "hostRestartDetail": "Sessions on {host} start again where they were, with their history, and the programs running in them end.",
+  "hostRestartDetail": "Sessions on {host} keep their programs running when its service has session handoff; an older service starts them again where they were, with their history.",
   "@hostRestartDetail": {
     "placeholders": {
       "host": {
@@ -1062,7 +1062,7 @@
   "setListenOn": "Add this computer as a host on your other machines at this address. Only your Tailscale account may connect.",
   "setListenNoTailscale": "Tailscale isn't running here: kerod listens once it is.",
   "setRemoteUpdates": "Let them update Kero here",
-  "setRemoteUpdatesDetail": "Kero on your other machines can update this app to its version. The app relaunches, and the programs running in its sessions end.",
+  "setRemoteUpdatesDetail": "Kero on your other machines can update this app to its version. The app relaunches; a current service keeps its sessions’ programs running, and an older one starts them again.",
   "setHostSettingsSplit": "A host's own settings",
   "setHostSettingsSplitDetail": "The shell, environment, scrollback and session restore of a host's sessions come from its own configuration: run kero config edit on the host. Appearance, keyboard and notifications are this app's.",
   "setShellThisComputer": "These apply to this computer's sessions. Each host's come from its own configuration (Settings › Hosts).",

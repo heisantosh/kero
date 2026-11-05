@@ -73,6 +73,12 @@ type pane struct {
 	awaiting bool
 	closed   bool
 	changed  chan struct{} // closed and replaced on every status change
+	// readDone closes when the pump reading this pane's terminal stops:
+	// a handoff waits for it before taking the terminal's snapshot.
+	readDone chan struct{}
+	// handingOff tells the pump that it stopped for a handoff, not
+	// because the program ended.
+	handingOff bool
 	// framing tells that frames for the clients are due, after output.
 	framing bool
 }
@@ -109,7 +115,7 @@ func (h *headless) Close() error {
 }
 
 func newPane(d *Daemon, sid string, info proto.Pane) (*pane, error) {
-	s := &pane{d: d, sid: sid, info: info, clients: map[*attachment]struct{}{}, changed: make(chan struct{})}
+	s := &pane{d: d, sid: sid, info: info, clients: map[*attachment]struct{}{}, changed: make(chan struct{}), readDone: make(chan struct{})}
 	s.info.Progress = -1
 	if s.info.Browser() {
 		return s, nil
@@ -167,13 +173,30 @@ func (s *pane) start(command []string, env []string) error {
 	s.info.Shell = name
 	s.info.CommandExit = nil
 	s.awaiting = len(command) > 0 && marksExit(shell)
+	s.readDone = make(chan struct{})
 	s.mu.Unlock()
 	go s.pump(proc)
 	return nil
 }
 
+// adopt takes a terminal and its program from a kerod that handed them
+// over: the shell keeps running, and the pump reads what it prints from
+// where the old one stopped.
+func (s *pane) adopt(proc *ptyProc, awaiting bool) {
+	s.mu.Lock()
+	s.proc = proc
+	s.shellPID = proc.PID()
+	s.info.PID = s.shellPID
+	s.info.CommandExit = nil
+	s.awaiting = awaiting
+	s.readDone = make(chan struct{})
+	s.mu.Unlock()
+	go s.pump(proc)
+}
+
 // pump reads the program's output until it ends.
 func (s *pane) pump(proc *ptyProc) {
+	defer close(s.readDone)
 	buf := make([]byte, 64<<10)
 	for {
 		n, err := proc.Read(buf)
@@ -183,6 +206,14 @@ func (s *pane) pump(proc *ptyProc) {
 		if err != nil {
 			break
 		}
+	}
+	s.mu.Lock()
+	handingOff := s.handingOff
+	s.mu.Unlock()
+	if handingOff {
+		// The terminal and its program go to the kerod that follows this
+		// one: do not wait for it, and do not hang it up.
+		return
 	}
 	select {
 	case <-proc.exited:

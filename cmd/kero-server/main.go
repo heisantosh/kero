@@ -26,6 +26,13 @@ var version = "dev"
 func main() {
 	build.Server = true
 	mygo.App.SetVersion(version)
+	if len(os.Args) > 2 && os.Args[1] == "__handoff-check" {
+		if err := daemon.CheckHandoff(os.Args[2]); err != nil {
+			fmt.Fprintln(os.Stderr, "kero: handoff:", err)
+			os.Exit(1)
+		}
+		return
+	}
 	if len(os.Args) > 1 && os.Args[1] == "__kerod" {
 		if err := daemon.Run(daemon.Options{}); err != nil {
 			fmt.Fprintln(os.Stderr, "kerod:", err)

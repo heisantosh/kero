@@ -31,10 +31,10 @@ import (
 
 // PublicKey checks Kero's releases: mygo.json's updates.publicKey, whose
 // private key signs the app's updates and the server build's archives.
-const PublicKey = "WzJsOGNIuf6mcEqo5ff8jub+NoQQOEk4JXreLPYjgyQ="
+const PublicKey = "JhYlVanve6a6WOsQmH30gJXG9rYCHhiNSXpiFvPdSro="
 
 // Repo is the GitHub repository of Kero's releases.
-const Repo = "egoist/kero"
+const Repo = "heisantosh/kero"
 
 // maxArchive bounds an archive's download.
 const maxArchive = 256 << 20
@@ -230,8 +230,6 @@ func Sign(archive []byte, version, goos, goarch, privateKey string) (string, err
 	return base64.StdEncoding.EncodeToString(ed25519.Sign(ed25519.PrivateKey(k), message(archive, version, goos, goarch))), nil
 }
 
-var installPlatform func(ctx context.Context, version, dir string) error
-
 // Install puts the server build of version ("" the latest), for this
 // platform, in dir, in place of what it holds: the install of the running
 // kero (InstallDir), which keeps running the old one until it restarts.
@@ -262,9 +260,6 @@ func Install(ctx context.Context, version, dir, current string, downgrade bool) 
 		case c < 0 && !downgrade:
 			return fmt.Errorf("Kero %s is installed, newer than %s: update the app instead", current, version)
 		}
-	}
-	if installPlatform != nil && os.Getenv("KERO_RELEASES") == "" {
-		return installPlatform(ctx, version, dir)
 	}
 	name := Asset(version, runtime.GOOS, runtime.GOARCH)
 	archive, err := get(ctx, URL(version, name), maxArchive)

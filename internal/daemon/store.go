@@ -143,10 +143,24 @@ func (d *Daemon) restore() {
 		return
 	}
 	d.projects = st.Projects
+	handoff := map[string]handoffPane{}
+	if d.handoff != nil {
+		for _, hp := range d.handoff.Panes {
+			handoff[hp.ID] = hp
+		}
+	}
 	when := time.UnixMilli(st.Saved).Format("Mon Jan 2 15:04")
 	for _, ss := range st.Sessions {
 		s := &session{id: ss.ID, project: ss.Project, name: ss.Name, agentNamed: ss.AgentNamed, created: ss.Created, restored: true, focus: ss.Focus, worktree: ss.Worktree}
 		for _, sp := range ss.Panes {
+			if hp, ok := handoff[sp.ID]; ok && sp.URL == "" {
+				if p := d.restoreHandoffPane(s.id, hp); p != nil {
+					s.restored = false
+					s.panes = append(s.panes, p)
+					d.panes[p.info.ID] = p
+				}
+				continue
+			}
 			if p := d.restorePane(s.id, sp, when, set.ResumeAgents); p != nil {
 				s.panes = append(s.panes, p)
 				d.panes[p.info.ID] = p
@@ -221,6 +235,48 @@ func (d *Daemon) restorePane(sid string, sp savedPane, when string, resumeAgents
 		d.log.Printf("pane %s restored as shell: %s", sp.ID, reason)
 	}
 	p.dirty = true
+	return p
+}
+
+// restoreHandoffPane adopts a pane a kerod of before this one handed over:
+// its screen from the snapshot the old kerod wrote, and its shell and PTY
+// from the master fd this process inherited. It starts no shell, and the
+// program runs on as if nothing happened.
+func (d *Daemon) restoreHandoffPane(sid string, hp handoffPane) *pane {
+	info := hp.Info
+	info.Restored = false
+	p, err := newPane(d, sid, info)
+	if err != nil {
+		d.log.Printf("adopting %s: %v", info.ID, err)
+		return nil
+	}
+	p.info.Progress = info.Progress
+	if hp.Snapshot != "" {
+		if b, err := os.ReadFile(hp.Snapshot); err == nil && len(b) > 0 {
+			p.term.Feed(b)
+		}
+	}
+	p.dirty = true
+	if hp.Exited || hp.PID <= 0 || hp.FD <= 0 {
+		p.awaiting = hp.Awaiting
+		p.info.Status = proto.Exited
+		p.info.ExitCode = hp.Code
+		return p
+	}
+	master := os.NewFile(uintptr(hp.FD), "pty-"+info.ID)
+	if master == nil {
+		d.log.Printf("adopting %s: no fd %d", info.ID, hp.FD)
+		p.info.Status = proto.Exited
+		return p
+	}
+	proc, err := adoptPTY(master, hp.PID)
+	if err != nil {
+		master.Close()
+		d.log.Printf("adopting %s: %v", info.ID, err)
+		p.info.Status = proto.Exited
+		return p
+	}
+	p.adopt(proc, hp.Awaiting)
 	return p
 }
 

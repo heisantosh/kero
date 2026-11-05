@@ -12,6 +12,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"runtime"
 	"slices"
 	"strconv"
 	"strings"
@@ -995,6 +996,25 @@ func daemonCmd(args []string, host string) error {
 		}
 		return nil
 	case "stop", "restart":
+		if sub == "restart" && runtime.GOOS != "windows" {
+			// The daemon execs the binary installed, which inherits the
+			// panes' terminals: its programs keep running. A kerod of
+			// before the handoff does not know this method, and is
+			// stopped and started below instead.
+			c, err := client.Connect(false)
+			if err != nil {
+				return err
+			}
+			err = c.Call("daemon.restart", nil, nil)
+			c.Close()
+			if err == nil {
+				fmt.Println("kerod restarted")
+				return nil
+			}
+			if !strings.Contains(err.Error(), "unknown method") {
+				return err
+			}
+		}
 		// The service's manager stops and restarts it, but Task
 		// Scheduler, whose kerod stops as any, and starts with the task.
 		if service.Installed() {
