@@ -9,6 +9,7 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"sync"
 	"text/tabwriter"
@@ -483,6 +484,14 @@ func bridge(args []string) error {
 // restartLocal restarts this machine's kerod into the Kero installed: its
 // service's, else one this executable starts.
 func restartLocal() error {
+	if runtime.GOOS != "windows" {
+		c, err := client.Connect(false)
+		if err != nil {
+			return err
+		}
+		defer c.Close()
+		return c.Call("daemon.restart", nil, nil)
+	}
 	if service.Installed() {
 		if err := service.Restart(); !errors.Is(err, service.ErrUnsupported) {
 			return err

@@ -32,6 +32,16 @@ import (
 func main() {
 	if len(os.Args) > 1 {
 		switch {
+		case os.Args[1] == "__handoff-check":
+			if len(os.Args) < 3 {
+				fmt.Fprintln(os.Stderr, "kero: __handoff-check needs a file")
+				os.Exit(2)
+			}
+			if err := daemon.CheckHandoff(os.Args[2]); err != nil {
+				fmt.Fprintln(os.Stderr, "kero: handoff:", err)
+				os.Exit(1)
+			}
+			return
 		case os.Args[1] == "__kerod":
 			if err := daemon.Run(daemon.Options{}); err != nil {
 				fmt.Fprintln(os.Stderr, "kerod:", err)

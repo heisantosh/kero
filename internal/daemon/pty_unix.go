@@ -3,21 +3,25 @@
 package daemon
 
 import (
-	"errors"
 	"fmt"
-	"io"
 	"os"
 	"os/exec"
+	"sync"
 	"syscall"
 	"unsafe"
 )
 
 // ptyProc is a program running in a pseudo-terminal of its own.
 type ptyProc struct {
-	master *os.File
-	cmd    *exec.Cmd
-	exited chan struct{}
-	code   int
+	master  *os.File
+	cmd     *exec.Cmd
+	pid     int
+	wakeR   *os.File
+	wakeW   *os.File
+	mu      sync.Mutex
+	stopped bool
+	exited  chan struct{}
+	code    int
 }
 
 type ptyOptions struct {
@@ -55,32 +59,7 @@ func startPTY(o ptyOptions) (*ptyProc, error) {
 		master.Close()
 		return nil, err
 	}
-	p := &ptyProc{master: master, cmd: cmd, exited: make(chan struct{})}
-	go func() {
-		err := cmd.Wait()
-		p.code = 0
-		if e, ok := errors.AsType[*exec.ExitError](err); ok {
-			if ws, ok := e.Sys().(syscall.WaitStatus); ok && ws.Signaled() {
-				p.code = 128 + int(ws.Signal())
-			} else {
-				p.code = e.ExitCode()
-			}
-		}
-		close(p.exited)
-	}()
-	return p, nil
-}
-
-// Read reads the program's output; io.EOF once nothing has the terminal
-// open any more.
-func (p *ptyProc) Read(b []byte) (int, error) {
-	n, err := p.master.Read(b)
-	if err != nil && n == 0 {
-		if errors.Is(err, syscall.EIO) || errors.Is(err, os.ErrClosed) {
-			err = io.EOF
-		}
-	}
-	return n, err
+	return newPTYProc(master, cmd)
 }
 
 func (p *ptyProc) Write(b []byte) (int, error) { return p.master.Write(b) }
@@ -91,23 +70,17 @@ func (p *ptyProc) Resize(cols, rows, cellW, cellH int) error {
 	return setSize(p.master, cols, rows, cellW, cellH)
 }
 
-func (p *ptyProc) PID() int { return p.cmd.Process.Pid }
-
 // ClearScreen does nothing: a Unix terminal keeps no screen of its own,
 // and shells move the cursor relative to where it is.
 func (p *ptyProc) ClearScreen() {}
 
 // Close hangs up the terminal: its processes get SIGHUP.
 func (p *ptyProc) Close() error {
+	p.stopRead()
 	p.hangup()
-	return p.master.Close()
-}
-
-// Kill kills the program's process group.
-func (p *ptyProc) Kill() {
-	if syscall.Kill(-p.cmd.Process.Pid, syscall.SIGKILL) != nil {
-		p.cmd.Process.Kill()
-	}
+	err := p.master.Close()
+	p.closeWakes()
+	return err
 }
 
 // Foreground returns the process group in the terminal's foreground.

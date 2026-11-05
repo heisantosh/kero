@@ -387,6 +387,12 @@ func (a *App) connected(h *host, gen int, rc *remote.Conn, cl *client.Client, er
 	h.daemonApp, h.daemonFP = cl.Welcome.App, cl.Welcome.Build
 	if !h.remote() {
 		relaunchForKerod(h.daemonApp)
+		// After an app update, the app's binary hands the local sessions
+		// over from the kerod of before. A kerod without the handoff is
+		// left as it is; the stale chip offers the older restart.
+		if a.daemonStale() && !mygo.IsDev() {
+			a.handoffDaemon()
+		}
 	}
 	cl.OnEvent(func(m proto.Message) { a.update(func() { a.event(h, cl, m) }) })
 	cl.Go("subscribe", nil, nil)

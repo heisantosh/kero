@@ -44,6 +44,9 @@ type Daemon struct {
 	opts    Options
 	started time.Time
 	log     *log.Logger
+	// handoff is the panes a kerod of before this one handed over, which
+	// restore adopts instead of starting new shells.
+	handoff *handoffState
 
 	mu       sync.Mutex
 	projects []proto.Project
@@ -186,7 +189,25 @@ func Run(opts Options) error {
 	// own, which no program kerod starts may get.
 	d.net = d.listen()
 	d.loadConversations()
+	handoffPath := ""
+	if os.Getenv("KERO_HANDOFF") == "1" {
+		handoffPath = os.Getenv("KERO_HANDOFF_FILE")
+		if handoffPath == "" {
+			handoffPath = d.handoffPath()
+		}
+		if st, err := loadHandoff(handoffPath); err == nil {
+			d.handoff = st
+		} else {
+			lg.Printf("handoff: %v", err)
+		}
+	}
 	d.restore()
+	if handoffPath != "" {
+		_ = os.Remove(handoffPath)
+		_ = os.RemoveAll(d.handoffDir())
+		os.Unsetenv("KERO_HANDOFF")
+		os.Unsetenv("KERO_HANDOFF_FILE")
+	}
 
 	signal.Ignore(syscall.SIGPIPE)
 	// SIGHUP is caught, on a channel nothing reads, not ignored: kerod
@@ -513,7 +534,7 @@ func (d *Daemon) environment(sid, pid, shell string, extra []string) []string {
 		switch {
 		case k == "CLAUDECODE", k == "TERM_PROGRAM", k == "TERM_PROGRAM_VERSION", k == "TERM_SESSION_ID",
 			k == "ITERM_SESSION_ID", k == "WINDOWID", k == "KITTY_WINDOW_ID", k == "LC_TERMINAL", k == "LC_TERMINAL_VERSION",
-			k == "KERO_SESSION", k == "KERO_PANE", k == "KERO_HOST", k == "KERO_ZDOTDIR", k == takeoverEnv, k == "KERO_SERVICE", k == "INVOCATION_ID", k == "MYGO_GHOSTTY_VT", k == "TMUX", k == "TMUX_PANE",
+			k == "KERO_SESSION", k == "KERO_PANE", k == "KERO_HOST", k == "KERO_ZDOTDIR", k == takeoverEnv, k == "KERO_SERVICE", k == "KERO_HANDOFF", k == "KERO_HANDOFF_FILE", k == "INVOCATION_ID", k == "MYGO_GHOSTTY_VT", k == "TMUX", k == "TMUX_PANE",
 			strings.HasPrefix(k, "CLAUDE_CODE_"), strings.HasPrefix(k, "GHOSTTY_"),
 			strings.HasPrefix(k, "VSCODE_"), strings.HasPrefix(k, "__CF"), k == "XPC_SERVICE_NAME":
 			continue
@@ -861,6 +882,20 @@ func (d *Daemon) serveControl(conn net.Conn, r *bufio.Reader) {
 			Params json.RawMessage `json:"params"`
 		}
 		if json.Unmarshal(line, &req) != nil {
+			continue
+		}
+		if req.Method == "daemon.restart" {
+			// The answer goes out first: the process that wrote it is
+			// replaced by the next binary as the answer is sent.
+			path, err := d.prepareHandoff()
+			m := proto.Message{ID: req.ID, Result: true}
+			if err != nil {
+				m.Result, m.Error = nil, err.Error()
+			}
+			c.write(m)
+			if err == nil {
+				d.execHandoff(path)
+			}
 			continue
 		}
 		go func() {
