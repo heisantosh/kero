@@ -20,3 +20,7 @@ require (
 	golang.org/x/net v0.59.0 // indirect
 	golang.org/x/text v0.43.0 // indirect
 )
+
+replace github.com/ebitengine/purego => github.com/heisantosh/purego v0.11.1-illumos.1
+
+replace github.com/egoist/mygo => github.com/heisantosh/mygo v0.7.5-illumos.1
