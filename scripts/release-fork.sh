@@ -42,15 +42,15 @@ go tool mygo build -platform darwin/amd64 -upload
 
 say "building the server builds"
 sh scripts/build-server.sh linux/amd64 linux/arm64 darwin/amd64 darwin/arm64 illumos/amd64
-go run ./internal/update/sign build/server/*.tar.gz
+go run ./internal/update/sign build/server/kero-server-$version-*.tar.gz
 
 say "uploading the server builds to $tag"
 gh release view "$tag" --repo "$repo" >/dev/null 2>&1 ||
 	gh release create "$tag" --repo "$repo" --title "Kero $version" --notes-file CHANGELOG.md --draft
 gh release upload "$tag" --repo "$repo" --clobber \
-	build/server/kero-server-*.tar.gz \
-	build/server/kero-server-*.tar.gz.sig \
-	build/server/kero-server-*.tar.gz.sha256 \
+	build/server/kero-server-$version-*.tar.gz \
+	build/server/kero-server-$version-*.tar.gz.sig \
+	build/server/kero-server-$version-*.tar.gz.sha256 \
 	build/server/install-server.sh \
 	build/server/install-server.ps1
 gh release edit "$tag" --repo "$repo" --draft=false
