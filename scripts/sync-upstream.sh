@@ -19,6 +19,10 @@ set -eu
 root="$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)"
 cd "$root"
 
+# The tests and the handoff check start daemons of their own; the app's
+# variables would point them at the running ones.
+unset KERO_PANE KERO_SESSION KERO_SOCKET KERO_HOME MYGO_GHOSTTY_VT || true
+
 go() {
 	if command -v mise >/dev/null 2>&1; then
 		mise x go@1.27.3 -- go "$@"
