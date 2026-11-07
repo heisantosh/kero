@@ -69,7 +69,7 @@ EOF
 	<key>LowPriorityIO</key>
 	<true/>
 	<key>ThrottleInterval</key>
-	<integer>3600</integer>
+	<integer>60</integer>
 	<key>StandardOutPath</key>
 	<string>$log</string>
 	<key>StandardErrorPath</key>
