@@ -20,21 +20,35 @@ heisantosh/kero work                I1──I2──I3
 
 ## Syncing with upstream
 
+`scripts/sync-upstream.sh` does the whole sync: fast-forwards `main`,
+rebases `work`, checks that `mygo.json` still holds upstream's version,
+checks `fork-deps.txt` against `go.mod`, runs the tests and a handoff
+check, and only then pushes `work`. It never publishes a release.
+
 ```sh
-git fetch --no-tags upstream
-git switch main
-git merge --ff-only upstream/main
-git push origin main
-git switch work
-git rebase main
-# test, then
-git push --force-with-lease origin work
+sh scripts/sync-upstream.sh
 ```
+
+Install the weekly launchd agent with:
+
+```sh
+sh scripts/install-sync-agent.sh
+```
+
+It runs Mondays at 09:00 and logs to `~/Library/Logs/kero-sync.log`. A
+missed run happens when the Mac next wakes. It stops on a conflict or a
+dependency-fork change, with a notification.
 
 `main` is never committed to. Fork release tags are `v<version>`, the
 version in `mygo.json`. The fork's `release.yml` is removed on `work`, so
 a tag does not run upstream's signed macOS app pipeline; use
 `scripts/release-fork.sh`.
+
+The version is one value: `mygo.json`'s version, the same as upstream
+`main`'s and upstream's latest release tag. `scripts/release-fork.sh`
+refuses to publish if those differ, if the worktree is dirty, or if the
+app, update manifest, server archives or install script do not carry that
+version.
 
 ## The two dependency forks
 
@@ -42,10 +56,13 @@ MyGo's terminal plugin and purego need small illumos changes:
 
 - `heisantosh/purego` tag `v0.11.1-illumos.1`: illumos dlopen/dlsym,
   callbacks and struct arguments.
-- `heisantosh/mygo` tag `v0.7.5-illumos.1`: three build tags in
+- `heisantosh/mygo` tag `v0.7.5-illumos.2`: three build tags in
   `plugins/terminal/internal/vt`.
 
-`go.mod` replaces both with those tags. When upstream moves:
+`fork-deps.txt` records the upstream version each fork tag is based on;
+`scripts/sync-upstream.sh` stops when `go.mod` asks for another, rather
+than silently pinning the old fork. `go.mod` replaces both with those
+tags. When upstream moves:
 
 1. Fast-forward the fork's `main`; rebase its `illumos` branch.
 2. Tag the new version.
