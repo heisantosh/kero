@@ -71,8 +71,11 @@ else
 fi
 git push origin "$tag" || fail "could not push $tag"
 
-if [ ! -f build/illumos/libghostty-vt.so ]; then
-	say "building libghostty-vt for illumos"
+mygo_dir=$(go list -m -f '{{.Dir}}' github.com/egoist/mygo)
+ghostty=$(jq -r '.libraries[] | select(.name == "libghostty-vt") | .source' "$mygo_dir/plugins/terminal/mygo-plugin.json" | sed 's#.*/tree/##')
+if [ ! -f build/illumos/libghostty-vt.so ] ||
+	[ "$(cat build/illumos/libghostty-vt.commit 2>/dev/null || true)" != "$ghostty" ]; then
+	say "building libghostty-vt for illumos ($ghostty)"
 	ILLUMOS_HOST="${ILLUMOS_HOST:-helios.local}" sh scripts/build-libghostty-vt-illumos.sh
 fi
 
