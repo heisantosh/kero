@@ -192,6 +192,7 @@ so="$(find "$out/lib" -maxdepth 1 -name 'libghostty-vt.so.*' -type f | head -n 1
 mkdir -p build/illumos
 cp "$so" build/illumos/libghostty-vt.so
 chmod 755 build/illumos/libghostty-vt.so
+printf '%s\n' "$commit" > build/illumos/libghostty-vt.commit
 say "wrote build/illumos/libghostty-vt.so ($(du -h build/illumos/libghostty-vt.so | cut -f1))"
 if command -v sha256sum >/dev/null 2>&1; then
 	sha256sum build/illumos/libghostty-vt.so
