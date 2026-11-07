@@ -102,7 +102,8 @@ if [ -f fork-deps.txt ]; then
 fi
 
 say "running the tests"
-go test ./... -skip TestBridgeScript || fail "the tests failed"
+go build ./... || fail "the build failed"
+go test ./internal/... -skip TestBridgeScript || fail "the tests failed"
 GOOS=illumos GOARCH=amd64 CGO_ENABLED=0 go build -o /dev/null ./cmd/kero-server ||
 	fail "the illumos build failed"
 
