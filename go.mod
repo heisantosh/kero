@@ -29,4 +29,4 @@ require (
 
 replace github.com/ebitengine/purego => github.com/heisantosh/purego v0.11.1-illumos.1
 
-replace github.com/egoist/mygo => github.com/heisantosh/mygo v0.7.5-illumos.1
+replace github.com/egoist/mygo => github.com/heisantosh/mygo v0.9.1-illumos.1
